@@ -1,0 +1,293 @@
+# TP M2 Bioinformatique
+
+## Écologie microbienne à partir de données métagénomiques
+
+### Contexte
+
+Ce TP a pour objectif d’introduire et de manipuler les **concepts fondamentaux de l’écologie microbienne** à partir de **données métagénomiques shotgun réelles**, issues du dépôt **CuratedMetagenomicData**. Les étudiants travailleront avec le langage **R** et des structures de données standards en écologie (phyloseq).
+
+---
+
+## Objectifs pédagogiques
+
+À l’issue de ce TP, l’étudiant devra être capable de :
+
+* Manipuler des jeux de données métagénomiques complexes
+* Comprendre la structure écologique d’une communauté microbienne
+* Calculer et interpréter la diversité **alpha** et **bêta**
+* Visualiser les communautés par des méthodes d’ordination
+* Tester des hypothèses écologiques simples
+
+---
+
+## Prérequis
+
+* Bases solides en R (data.frame, ggplot2)
+* Notions de statistiques (distance, variance)
+* Bases de microbiologie et métagénomique
+
+---
+
+## Packages utilisés
+
+```{r}
+library(CuratedMetagenomicData)
+library(phyloseq)
+library(vegan)
+library(microbiome)
+library(tidyverse)
+```
+
+---
+
+## Organisation du TP (2 heures)
+
+* **Partie 1 à 3** : concepts fondamentaux (≈ 50 min)
+* **Partie 4 et 5** : structuration des communautés (≈ 40 min)
+* **Partie 6** : test d’hypothèses (≈ 20 min)
+* **Discussion finale** : interprétation biologique (≈ 10 min)
+
+> **Encadré pédagogique**
+> L’objectif n’est pas d’exécuter tout le code mécaniquement, mais de **comprendre ce que chaque analyse mesure biologiquement** et dans quelles conditions elle est valide.
+
+---
+
+## Partie 1 — Chargement et exploration des données
+
+### Objectif
+
+Découvrir la structure des données métagénomiques et leurs métadonnées associées.
+
+### Données
+
+Nous utiliserons des profils taxonomiques MetaPhlAn issus du Human Microbiome Project.
+
+```{r}
+data <- CuratedMetagenomicData(
+  "HMP_2012.metaphlan_bugs_list",
+  dryrun = FALSE
+)
+
+ps <- ExpressionSet2phyloseq(data)
+ps
+```
+
+### Questions
+
+1. Combien d’échantillons et de taxa contient l’objet phyloseq ?
+2. Quelles sont les principales variables de métadonnées disponibles ?
+3. Quelle est la nature des abondances (comptes, proportions) ?
+
+---
+
+## Partie 2 — Prétraitement écologique
+
+### Objectif
+
+Appliquer des transformations écologiquement pertinentes aux données.
+
+```{r}
+ps.rel <- transform_sample_counts(ps, function(x) x / sum(x))
+
+ps.filt <- filter_taxa(
+  ps.rel,
+  function(x) mean(x) > 1e-4,
+  prune = TRUE
+)
+```
+
+### Questions
+
+1. Pourquoi utilise-t-on des abondances relatives en écologie microbienne ?
+2. Quel est l’impact du filtrage des taxa rares ?
+
+---
+
+## Partie 3 — Diversité alpha
+
+> **Encadré théorique — Diversité alpha**
+> La diversité alpha décrit la **diversité au sein d’un échantillon**.
+>
+> * **Richesse** : nombre de taxa observés
+> * **Shannon** : prend en compte richesse et équitabilité
+> * **Simpson** : sensible aux taxa dominants
+>   Deux communautés peuvent avoir la même richesse mais des diversités très différentes.
+
+### Objectif
+
+Quantifier la diversité intra-échantillon.
+
+### Indices étudiés
+
+* Richesse observée
+* Shannon
+* Simpson
+
+```{r}
+alpha <- estimate_richness(
+  ps.filt,
+  measures = c("Observed", "Shannon", "Simpson")
+)
+
+alpha$BodySite <- sample_data(ps.filt)$body_site
+```
+
+```{r}
+ggplot(alpha, aes(x = BodySite, y = Shannon)) +
+  geom_boxplot() +
+  theme_bw()
+```
+
+### Questions
+
+1. Quelle différence conceptuelle existe-t-il entre richesse et diversité ?
+2. Quels sites corporels présentent la plus forte diversité ?
+3. Comment interpréter une diversité élevée mais une richesse faible ?
+
+---
+
+## Partie 4 — Diversité bêta
+
+> **Encadré théorique — Diversité bêta**
+> La diversité bêta mesure la **différence de composition entre communautés**.
+> Elle repose sur des **distances écologiques**, et non sur des distances euclidiennes classiques.
+> Bray–Curtis est particulièrement adaptée aux données d’abondance relative.
+
+### Objectif
+
+Comparer la composition microbienne entre échantillons.
+
+```{r}
+dist.bc <- phyloseq::distance(ps.filt, method = "bray")
+```
+
+### Questions
+
+1. Que mesure la distance de Bray–Curtis ?
+2. En quoi diffère-t-elle d’une distance euclidienne ?
+
+---
+
+## Partie 5 — Réduction de dimensions (ordination)
+
+> **Encadré théorique — Ordination**
+> Les méthodes d’ordination permettent de **projeter une matrice de distances complexe** dans un espace de faible dimension afin de visualiser des gradients écologiques.
+>
+> * **PCoA** : basée sur une matrice de distances
+> * **PCA** : basée sur une matrice de variance-covariance
+
+### Objectif
+
+Visualiser la structuration écologique des communautés.
+
+```{r}
+ord <- ordinate(ps.filt, method = "PCoA", distance = "bray")
+
+plot_ordination(ps.filt, ord, color = "body_site") +
+  geom_point(size = 3) +
+  theme_bw()
+```
+
+### Questions
+
+1. Observe-t-on une structuration par site corporel ?
+2. Que représentent les axes de la PCoA ?
+3. Quelle est la différence entre PCA et PCoA ?
+
+---
+
+## Partie 6 — Test d’hypothèses écologiques (PERMANOVA)
+
+### Objectif
+
+Tester statistiquement l’effet d’une variable environnementale.
+
+```{r}
+meta <- data.frame(sample_data(ps.filt))
+
+adonis2(
+  dist.bc ~ body_site,
+  data = meta,
+  permutations = 999
+)
+```
+
+### Questions
+
+1. Quelle est l’hypothèse testée par la PERMANOVA ?
+2. Comment interpréter le R² et la p-value ?
+3. Quelles sont les limites de ce test ?
+
+---
+
+## Partie 7 — Analyse taxonomique descriptive
+
+### Objectif
+
+Relier diversité et composition taxonomique.
+
+```{r}
+ps.phylum <- ps.filt %>%
+  tax_glom("Phylum") %>%
+  transform_sample_counts(function(x) x / sum(x))
+
+plot_bar(ps.phylum, fill = "Phylum") +
+  facet_wrap(~ body_site, scales = "free_x")
+```
+
+### Questions
+
+1. Quels phyla dominent selon les sites corporels ?
+2. Comment relier composition taxonomique et diversité alpha ?
+
+---
+
+## Correction – éléments attendus (enseignant)
+
+### Partie 1
+
+* L’objet phyloseq contient plusieurs centaines d’échantillons et plusieurs milliers de taxa.
+* Les métadonnées incluent notamment le site corporel, l’âge, le sexe et l’étude d’origine.
+* Les abondances MetaPhlAn sont déjà normalisées (profils relatifs).
+
+### Partie 3
+
+* Les sites comme le **gut** présentent une diversité alpha élevée.
+* Les sites exposés (peau) montrent souvent une diversité plus faible.
+* Une richesse élevée n’implique pas nécessairement une forte équitabilité.
+
+### Partie 4–5
+
+* Les échantillons se regroupent fortement par site corporel.
+* Les premiers axes de la PCoA capturent les gradients écologiques dominants.
+* La PCoA permet d’utiliser des distances non euclidiennes, contrairement à la PCA.
+
+### Partie 6
+
+* La PERMANOVA teste si les **centroïdes des groupes** sont significativement différents.
+* Le R² représente la proportion de variance expliquée.
+* Le test est sensible aux différences de dispersion intra-groupe.
+
+> **Message clé à retenir**
+> Les communautés microbiennes humaines sont fortement structurées par leur environnement, et les outils de l’écologie permettent de quantifier et tester cette structuration.
+
+---
+
+## Travail à rendre
+
+* Un script R commenté
+* Figures produites
+* Réponses aux questions (interprétation biologique attendue)
+
+---
+
+## Extensions (optionnelles)
+
+* Comparaison Bray–Curtis vs Jaccard
+* Analyse UniFrac (si arbre disponible)
+* Classification supervisée (Random Forest)
+* Analyse longitudinale
+
+---
+
+**Durée estimée** : 3–4 heures
