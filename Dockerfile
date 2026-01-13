@@ -10,14 +10,20 @@ RUN apt-get update && apt-get install -y \
 # Installer tidyverse (CRAN)
 RUN Rscript -e "install.packages('tidyverse', repos='https://cloud.r-project.org')"
 
-# Installer packages Bioconductor nécessaires au TP
-RUN Rscript -e "BiocManager::install(c('CuratedMetagenomicData','phyloseq','vegan','microbiome'), ask=FALSE, update=FALSE)"
+# Installer packages Bioconductor nécessaires
+RUN Rscript -e "BiocManager::install('CuratedMetagenomicData', ask=FALSE, update=FALSE)"
+RUN Rscript -e "BiocManager::install(c('phyloseq','vegan','microbiome'), ask=FALSE, update=FALSE)"
+
+# 🔑 Rendre les librairies accessibles à rstudio
+RUN chown -R rstudio:rstudio /usr/local/lib/R/site-library
+
+# Forcer le chemin des librairies R
+ENV R_LIBS_SITE=/usr/local/lib/R/site-library
 
 # Copier le TP
 COPY TP_microbiome_M2.Rmd /home/rstudio/
 
 WORKDIR /home/rstudio
 
-# Identifiants RStudio
 ENV USER=rstudio
 ENV PASSWORD=tp
