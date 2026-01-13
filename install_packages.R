@@ -1,7 +1,19 @@
-options(repos = c(CRAN = "https://cloud.r-project.org"))
+options(
+  repos = c(
+    CRAN = "https://cloud.r-project.org"
+  )
+)
 
-install.packages("BiocManager")
+message("=== Installation BiocManager ===")
+install.packages("BiocManager", quiet = FALSE)
 
+message("=== Version R ===")
+print(R.version.string)
+
+message("=== Initialisation Bioconductor ===")
+BiocManager::install(version = "3.18", ask = FALSE)
+
+message("=== Installation packages Bioconductor ===")
 BiocManager::install(
   c(
     "CuratedMetagenomicData",
@@ -13,4 +25,7 @@ BiocManager::install(
   update = FALSE
 )
 
-install.packages("tidyverse")
+message("=== Installation tidyverse ===")
+install.packages("tidyverse", dependencies = TRUE)
+
+message("=== Installation terminée ===")
