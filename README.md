@@ -15,3 +15,8 @@ Aucune installation de packages R n’est nécessaire.
 ```bash
 git clone https://github.com/eugenibc/TP_metagenomics.git
 cd TP_M2_Microbiome
+
+## 2️⃣ Récupérer le TP
+```bash
+docker build -t tp_microbiome .
+docker run -p 8787:8787 -e PASSWORD=tp tp_microbiome
