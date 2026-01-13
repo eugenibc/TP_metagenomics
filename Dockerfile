@@ -1,4 +1,4 @@
-FROM rocker/bioconductor:3.18
+FROM bioconductor/bioconductor:3.18
 
 LABEL description="TP M2 Bioinformatique – Écologie microbienne"
 
@@ -10,7 +10,7 @@ RUN apt-get update && apt-get install -y \
 # Installer tidyverse (CRAN)
 RUN Rscript -e "install.packages('tidyverse', repos='https://cloud.r-project.org')"
 
-# Installer packages Bioconductor nécessaires
+# Installer packages Bioconductor nécessaires au TP
 RUN Rscript -e "BiocManager::install(c('CuratedMetagenomicData','phyloseq','vegan','microbiome'), ask=FALSE, update=FALSE)"
 
 # Copier le TP
