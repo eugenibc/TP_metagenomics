@@ -11,6 +11,7 @@ RUN apt-get update && apt-get install -y \
 RUN Rscript -e "install.packages('tidyverse', repos='https://cloud.r-project.org')"
 
 # Installer packages Bioconductor nécessaires
+RUN Rscript -e "BiocManager::install('curatedMetagenomicData', ask=FALSE, update=FALSE)"
 RUN Rscript -e "BiocManager::install(c('phyloseq','vegan','microbiome'), ask=FALSE, update=FALSE)"
 
 # 🔑 Rendre les librairies accessibles à rstudio
