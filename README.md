@@ -13,5 +13,5 @@ Aucune installation de packages R n’est nécessaire.
 
 ## 2️⃣ Récupérer le TP
 ```bash
-git clone https://github.com/XXX/TP_M2_Microbiome.git
+git clone https://github.com/eugenibc/TP_metagenomics.git
 cd TP_M2_Microbiome
