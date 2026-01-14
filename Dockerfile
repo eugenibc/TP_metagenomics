@@ -20,8 +20,9 @@ RUN chown -R rstudio:rstudio /usr/local/lib/R/site-library
 # Forcer le chemin des librairies R
 ENV R_LIBS_SITE=/usr/local/lib/R/site-library
 
-# Copier le TP
-COPY TP_microbiome_M2.Rmd /home/rstudio/
+# Copier les TP
+COPY TP_microbiome_M2_Part1.Rmd /home/rstudio/
+COPY TP_microbiome_M2_Part2.Rmd /home/rstudio/
 
 WORKDIR /home/rstudio
 
