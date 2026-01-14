@@ -8,7 +8,7 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Installer tidyverse (CRAN)
-RUN Rscript -e "install.packages('tidyverse', repos='https://cloud.r-project.org')"
+RUN Rscript -e "install.packages('tidyverse','pheatmap','Hmisc','reshape', repos='https://cloud.r-project.org')"
 
 # Installer packages Bioconductor nécessaires
 RUN Rscript -e "BiocManager::install('curatedMetagenomicData', ask=FALSE, update=FALSE)"
