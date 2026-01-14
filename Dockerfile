@@ -12,7 +12,7 @@ RUN Rscript -e "install.packages('tidyverse', repos='https://cloud.r-project.org
 
 # Installer packages Bioconductor nécessaires
 RUN Rscript -e "BiocManager::install('curatedMetagenomicData', ask=FALSE, update=FALSE)"
-RUN Rscript -e "BiocManager::install(c('phyloseq','vegan','microbiome'), ask=FALSE, update=FALSE)"
+RUN Rscript -e "BiocManager::install(c('phyloseq','vegan','microbiome','mia'), ask=FALSE, update=FALSE)"
 
 # 🔑 Rendre les librairies accessibles à rstudio
 RUN chown -R rstudio:rstudio /usr/local/lib/R/site-library
