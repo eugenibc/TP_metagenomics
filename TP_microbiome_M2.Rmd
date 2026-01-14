@@ -58,18 +58,42 @@ library(tidyverse)
 
 Découvrir la structure des données métagénomiques et leurs métadonnées associées.
 
+### Metadonnées
+
+````{r}
+sampleMetadata
+dim(sampleMetadata)
+length(unique(sampleMetadata$study_name))
+table(sampleMetadata$study_name)
+```
+
 ### Données
 
-Nous utiliserons des profils taxonomiques MetaPhlAn issus du Human Microbiome Project.
+Nous utiliserons des profils taxonomiques MetaPhlAn issus du Human Microbiome Project. Pour ça, on utilise la fonction curatedMetagenomicData avec le nom de l'etude selon le tableau d metadonnées (HMP_2012; 748 echantillons)
 
 ```{r}
-data <- CuratedMetagenomicData(
-  "HMP_2012.metaphlan_bugs_list",
+##View the available files (metagenomic features)
+data <- curatedMetagenomicData(
+  "HMP_2012",
+  dryrun = TRUE
+)
+##Get the data for relative abundances
+data <- curatedMetagenomicData(
+  "HMP_2012.relative_abundance",
   dryrun = FALSE
 )
 
-ps <- ExpressionSet2phyloseq(data)
+
+
+# library(phyloseq)
+# ps <- ExpressionSet2phyloseq(data)
+ps <- makePhyloseqFromTreeSummarizedExperiment(data$`2021-03-31.HMP_2012.relative_abundance`, assay.type = "relative_abundance")
 ps
+library(phyloseq)
+table(sample_data(ps)[,"body_site"])
+
+dim(otu_table(ps))
+colSums(otu_table(ps))
 ```
 
 ### Questions
@@ -88,12 +112,73 @@ Appliquer des transformations écologiquement pertinentes aux données.
 
 ```{r}
 ps.rel <- transform_sample_counts(ps, function(x) x / sum(x))
+alpha <- estimate_richness(
+  ps.rel,
+  measures = c("Shannon", "Simpson")
+)
+alpha$Observed <- colSums(otu_table(ps.rel)>0)
+alpha$BodySite <- sample_data(ps.rel)$body_site
+alpha$BodySubsite <- sample_data(ps.rel)$body_subsite
 
+ggplot(alpha, aes(x=BodySite, y=Shannon)) + 
+  geom_boxplot()
+ggplot(alpha, aes(x=BodySubsite, y=Shannon)) + 
+  geom_boxplot(aes(fill=BodySite)) + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+ggplot(alpha, aes(x=BodySite, y=Simpson)) + 
+  geom_boxplot()
+ggplot(alpha, aes(x=BodySubsite, y=Simpson)) + 
+  geom_boxplot(aes(fill=BodySite)) + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+ggplot(alpha, aes(x=BodySite, y=Observed)) + 
+  geom_boxplot()
+ggplot(alpha, aes(x=BodySubsite, y=Observed)) + 
+  geom_boxplot(aes(fill=BodySite)) + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+alpha$number_reads <- sample_data(ps.rel)$number_reads
+ggplot(alpha, aes(x=BodySite, y=number_reads)) + 
+  geom_boxplot()
+ggplot(alpha, aes(x=BodySubsite, y=number_reads)) + 
+  geom_boxplot(aes(fill=BodySite)) + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+
+```{r}
 ps.filt <- filter_taxa(
   ps.rel,
   function(x) mean(x) > 1e-4,
   prune = TRUE
 )
+
+alpha.filt <- estimate_richness(
+  ps.filt,
+  measures = c("Shannon", "Simpson")
+)
+alpha.filt$Observed <- colSums(otu_table(ps.filt)>0)
+alpha.filt$BodySite <- sample_data(ps.filt)$body_site
+alpha.filt$BodySubsite <- sample_data(ps.filt)$body_subsite
+
+ggplot(alpha.filt, aes(x=BodySite, y=Shannon)) + 
+  geom_boxplot()
+ggplot(alpha.filt, aes(x=BodySubsite, y=Shannon)) + 
+  geom_boxplot(aes(fill=BodySite)) + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+ggplot(alpha.filt, aes(x=BodySite, y=Simpson)) + 
+  geom_boxplot()
+ggplot(alpha.filt, aes(x=BodySubsite, y=Simpson)) + 
+  geom_boxplot(aes(fill=BodySite)) + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+ggplot(alpha.filt, aes(x=BodySite, y=Observed)) + 
+  geom_boxplot()
+ggplot(alpha.filt, aes(x=BodySubsite, y=Observed)) + 
+  geom_boxplot(aes(fill=BodySite)) + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
 ### Questions
@@ -126,7 +211,7 @@ Quantifier la diversité intra-échantillon.
 ```{r}
 alpha <- estimate_richness(
   ps.filt,
-  measures = c("Observed", "Shannon", "Simpson")
+  measures = c("Shannon", "Simpson")
 )
 
 alpha$BodySite <- sample_data(ps.filt)$body_site
@@ -181,12 +266,36 @@ dist.bc <- phyloseq::distance(ps.filt, method = "bray")
 Visualiser la structuration écologique des communautés.
 
 ```{r}
-ord <- ordinate(ps.filt, method = "PCoA", distance = "bray")
-
-plot_ordination(ps.filt, ord, color = "body_site") +
+ord.pcoa <- ordinate(ps.rel, method = "PCoA", distance = "bray")
+plot_ordination(ps.rel, ord.pcoa, color = "body_subsite", shape = "body_site") +
   geom_point(size = 3) +
   theme_bw()
+
+
+ord.nmds <- ordinate(ps.rel, method = "NMDS", distance = "bray")
+plot_ordination(ps.rel, ord.nmds, color = "body_subsite", shape = "body_site") +
+  geom_point(size = 3) +
+  theme_bw()
+
 ```
+
+
+```{r}
+##genus-level abundance profiles
+ps.rel_genus <- agglomerateByRank(data$`2021-03-31.HMP_2012.relative_abundance`, rank = "genus")
+ps.rel_genus <- makePhyloseqFromTreeSummarizedExperiment(ps.rel_genus, assay.type = "relative_abundance")
+ps.rel_genus.rel <- transform_sample_counts(ps.rel_genus, function(x) x / sum(x))
+ps.rel_genus.rel.ord <- ordinate(ps.rel_genus.rel, method = "PCoA", distance = "bray")
+plot_ordination(ps.rel_genus.rel, ps.rel_genus.rel.ord, color = "body_subsite", shape = "body_site") +
+  geom_point(size = 3) +
+  theme_bw()
+
+
+
+
+```
+
+
 
 ### Questions
 
