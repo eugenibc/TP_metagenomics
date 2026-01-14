@@ -1,0 +1,185 @@
+---
+title: "Approches et outils pour la métagénomique; Exercices practiques I"
+author: "Eugeni Belda & Jean-Daniel Zucker"
+date: "2026-01-16"
+output:
+  html_document:
+    toc: yes
+    toc_depth: 4
+  pdf_document:
+    toc: yes
+    toc_depth: 4
+  rmdformats::html_clean:
+    gallery: no
+    highlight: tango
+    lightbox: yes
+    self_contained: yes
+    thumbnails: no
+  word_document:
+    toc: yes
+    toc_depth: '4'
+status: confidential
+editor_options:
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Calcul des index de diversité
+
+Vous êtes un écologiste travaillant sur la diversité des espèces d'arbres dans une forêt tropicale. Vous avez accès aux données de la forêt de Barro Colorado Island (BCI) au Panama, qui contiennent les abondances de différentes espèces d'arbres dans 50 parcelles de 1 hectare chacune. Votre objectif est d'analyser la diversité des espèces dans ces parcelles en utilisant différentes mesures de diversité : Richness, Chao1, ACE et Shannon.
+
+Utilisez le package `vegan` en R (https://raw.githubusercontent.com/rstudio/cheatsheets/main/vegan.pdf) pour calculer ces indices de diversité pour chaque parcelle. Ensuite, réfléchissez à la manière dont vous pourriez modifier les données pour augmenter la distance de Chao1 sans changer la mesure de Richness pour une parcelle donnée.
+
+```{r}
+# Installation et chargement du package vegan
+# install.packages("vegan")
+library(vegan)
+
+# Chargement du jeu de données BCI
+data(BCI)
+
+# Calcul de la Richness (nombre d'espèces par parcelle)
+richness <- specnumber(BCI)
+
+# Calcul de l'indice Chao1 et ACE
+chao1_ace <- estimateR(BCI, method = "chao")
+
+# Calcul de l'indice Shannon
+shannon <- diversity(BCI, index = "shannon")
+
+# Affichage des résultats
+print("Richness:")
+print(richness)
+print("Chao1; ACE:")
+print(chao1_ace)
+print("Shannon:")
+print(shannon)
+```
+
+
+## Questions de réflexion
+
+1. Comment pouvez-vous modifier les données d'une parcelle spécifique pour augmenter l'indice de Chao1 sans changer la mesure de Richness ?
+2. Quel type de modification des abondances des espèces dans la parcelle influencerait l'indice de Chao1 mais pas la Richness ?
+3. Quelles implications ces modifications auraient-elles sur l'interprétation des résultats de diversité pour cette parcelle ?
+
+## Réponses aux questions de réflexion
+
+1. Pour augmenter l'indice de Chao1 sans changer la mesure de Richness, vous devez augmenter le nombre des espèces rares (c'est-à-dire les espèces avec de faibles effectifs) dans une parcelle donnée. L'indice de Chao1 est sensible aux espèces rares et estime la richesse en espèces en tenant compte de ces espèces peu abondantes. En augmentant leur nombre, vous augmentez l'estimation de la richesse en espèces selon Chao1.
+
+2. Vous pouvez augmenter le nombre d'espèces rares on diminuons l'abondance des espéces a 4 et 3 observations pour les paser a 2 et 1 observation dans la parcelle. Par exemple, si une espèce est représentée par 4 individus, en quittent 2 ou 3 individus elle devient an espéce rare, doncs vous augmentez l'indice de Chao1 sans changer la Richness, car le nombre total d'espèces reste le même.
+
+3. Ces modifications impliquent que la parcelle pourrait être plus riche en espèces qu'elle ne le paraît en se basant uniquement sur la Richness. L'augmentation du nombre des espèces rares peut indiquer une plus grande diversité biologique non détectée par la simple mesure de Richness. Cela peut être important pour les études de conservation et de gestion des écosystèmes, où la préservation des espèces rares est souvent une priorité.
+
+
+Pour répondre à la question de réflexion en utilisant le code R, nous allons modifier les données du jeu de données `BCI` pour augmenter le nombre des espèces rares dans une parcelle spécifique, puis recalculer l'indice de Chao1 pour cette parcelle. Nous choisirons une parcelle au hasard et diminuirons on 2 individus l'abondance des espèces qui ont une abondance de 4 ou 3 individus.
+
+Voici le code R pour effectuer cette modification et recalculer l'indice de Chao1 :
+
+
+```{r}
+# Choisissons une parcelle au hasard, par exemple la première parcelle
+parcelle <- BCI[1, ]
+
+# Diminuons l'abondance des espèces a 4 et 3 counts (abondance a 2 ou 1)
+espèces_rares <- which(parcelle == 3 | parcelle == 4)
+parcelle[espèces_rares] <- parcelle[espèces_rares] - 2
+
+# Recalculons l'indice de Chao1 pour la parcelle modifiée
+chao1_modifié <- estimateR(parcelle, method = "chao")
+
+# Affichage de l'indice de Chao1 modifié
+print("Indice de Chao1 modifié pour la parcelle choisie :")
+print(chao1_modifié)
+
+# Affichage de l'indice de Chao1 original
+print("Indice de Chao1 original pour la parcelle choisie :")
+print(chao1_ace[,1,drop=FALSE])
+```
+
+Ce code sélectionne la première parcelle du jeu de données `BCI`, identifie les espèces à 4 et 3 individus (avec une abondance de 4 ou 3), diminue leur abondance on 2 individus, puis recalcule l'indice de Chao1 pour cette parcelle modifiée. Vous pouvez répéter ce processus pour d'autres parcelles ou choisir une parcelle spécifique en modifiant l'index de la parcelle dans le code.
+
+## Visu variations de diversité selon groupes d'echantillons
+
+On veux mettre on relation les estimations de diversité vs. des informations sur les sites (habitat des 50 hectare plots + presence des rivieres). Pour ça on doit charger le tableau de metadonnées pour les echantillons et les ajouter avec les index de diversité q'on a calculé precedement
+
+```{r, fig.align="center", fig.height=4, fig.width=8}
+##Load the environmental metadata
+data("BCI.env")
+chao1.df <- as.data.frame(chao1_ace)
+chao1.df <- chao1.df[c(1,2,4),] #retain the diversity values for chao/ACE
+chao1.df <- as.data.frame(t(chao1.df))
+chao1.df <- merge(chao1.df, BCI.env, by=0)
+```
+
+Dans le code ci-dessus on visualise la distribution de l'index chao1 par-rapport les deux variables
+
+```{r, fig.align="center", fig.height=5, fig.width=10}
+par(mfrow=c(1,2))
+boxplot(chao1.df$S.obs~chao1.df$Habitat, las=2)
+boxplot(chao1.df$S.obs~chao1.df$Stream)
+```
+
+
+# Càlcul de beta-diversité
+
+Dans l'exercice suivant nous allons calculer des index de beta-diversité à partir de la matrice d'abondance de différentes espèces d'arbres q'on a utilisé pour l'analyse de diversité. Pour ça, on va utiliser la fonction *vegdist* du package vegan. On va calculer l'index de beta-diversité de Bray-Curtis, qui est comprise entre zero et 1 (zero=abondances identiques entre les arbres detectées dans les deux sites; 1=aucun espece d'arbre on comun entre les deux sites). Dans le code dessus on va calculer la matrice d distance avec la fonction *vegan::vegdist* et on visualize sur la forme d'un heatmap carrée qui clusterise les echantillons par-rapport a cette distance. Est-ce que vous pourriez l'interpreter (p.ex., quel est l'echantillon le plus divergent par-rapport le reste??
+
+```{r, fig.align="center", fig.height=8, fig.width=8}
+BI_bray <- vegdist(x = BCI, method = "bray")
+pheatmap::pheatmap(as.matrix(BI_bray))
+```
+
+## Question d reflexion
+
+Sachent que l'index de bray-curtis mesure la distance entre echantillons a partir des profils d'abondance, comment vous pourriez le transformer dans un index d similarité et visualiser pour voir des groupes d'especes qui se resemble
+
+
+# Analyse de coordones principals (PCoA)
+La PCoA, aussi conu comme multidimensional scaling (MDS) c'est un methode d'ordination qui nous permet de reduire les dimension de nos données d'entrée pour meilleur visualiser la distance entre echantillons. Nous allons faire cette analyse avec la fonction de base R *cmdscale*. 
+
+```{r}
+BI_bray_pcoa <- cmdscale(d = BI_bray, eig = TRUE)
+```
+
+Chaque dimension d'une ordination est associée à une valeur propre qui nous indique dans quelle mesure les distances par paire sont expliquées par cette dimension. Nous devrions donc toujours regarder le graphique de ces valeurs propres (le graphique "scree") pour avoir une idée de la dimensionnalité de nos données. On trouve ces valeurs dans la sortie de cmdscale, dans l'slot *eig*Ici, il est clair que les deux premières dimensions sont beaucoup plus importantes que les autres, et nous continuerons avec une représentation en 2D :
+
+```{r}
+barplot(BI_bray_pcoa$eig/sum(BI_bray_pcoa$eig))
+```
+
+Dans la suite, on va visualiser la disposition des echantillons on base a les deux premiere dimensions de notre PCoA, et on va visualiser ces echantillons on colorent par la variable Habitat.
+
+```{r, fig.align="center", fig.height=4, fig.width=6}
+library(ggplot2)
+BI_bray_pcoa.df <- data.frame(BI_bray_pcoa$points)
+BI_bray_pcoa.df <- merge(BI_bray_pcoa.df, BCI.env, by = 0)
+
+ggplot(BI_bray_pcoa.df, aes(x=X1, y=X2)) + 
+  geom_point(aes(colour=Habitat)) + 
+  xlab(paste("PCo1 (", signif(100*(BI_bray_pcoa$eig[1]/sum(BI_bray_pcoa$eig)),2),"%)", sep = "")) + 
+  ylab(paste("PCo2 (", signif(100*(BI_bray_pcoa$eig[2]/sum(BI_bray_pcoa$eig)),2),"%)", sep = ""))
+```
+
+Il semble avoir un certain regroupement des echantillons sur le premiere axe d'ordination, qui separe a droit les echantillons OldSlope vs. le reste, et dans le 2eme axe plutot les echantillons OldHigh vs. OldLow. On peux tester si cette variable (Habitat) à un impact significatif sur la composition de les communautes d'arbres de façon statistique avec le test PERMANOVA (Permutation-based multi-variate analyses of variance), qui prend la forme d'un regression ou notre variable dependent (y) c'est notre matrice d distance on lieu d'un variable continue dans un regression classique. On peux faire cette analyse avec la fonction *vegan::adonis2 *
+
+```{r}
+##Test impact of Habitat on community composition
+adonis2(formula = BI_bray~Habitat, data = BCI.env)
+```
+Doncs on observe que la variable Habitat à un impact significatif sur la composition des communités d'arbres (p-value=0.001), qui explique 26.52% de la variabilité compositionnel determiné par la distance de Bray-Curtis (valeur R2)
+
+
+```{r}
+##Test impact of Stream on community composition
+adonis2(formula = BI_bray~Stream, data = BCI.env)
+```
+
+
+## Exercice
+
+Faire le meme visualisation de la PCoA par la variable Strem + test son impact sur la compostion de la communaute d'arbres.
+
