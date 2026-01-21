@@ -23,6 +23,7 @@ ENV R_LIBS_SITE=/usr/local/lib/R/site-library
 # Copier les TP
 COPY TP_microbiome_M2_Part1.Rmd /home/rstudio/
 COPY TP_microbiome_M2_Part2.Rmd /home/rstudio/
+COPY TP_microbiome_M2_Part2_noDocker.Rmd /home/rstudio/
 
 WORKDIR /home/rstudio
 
