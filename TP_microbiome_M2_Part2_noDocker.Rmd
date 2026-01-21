@@ -1,0 +1,496 @@
+---
+title: "Approches et outils pour la métagénomique; Exercices practiques III"
+author: "Eugeni Belda & Jean-Daniel Zucker"
+date: "2026-01-16"
+output:
+  html_document:
+    toc: yes
+    toc_depth: 4
+  pdf_document:
+    toc: yes
+    toc_depth: 4
+  rmdformats::html_clean:
+    gallery: no
+    highlight: tango
+    lightbox: yes
+    self_contained: yes
+    thumbnails: no
+  word_document:
+    toc: yes
+    toc_depth: '4'
+status: confidential
+editor_options:
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+
+# Contexte
+
+Ce TP a pour objectif d’introduire et de manipuler les **concepts fondamentaux de l’écologie microbienne** à partir de **données métagénomiques shotgun réelles**, issues du dépôt **curatedMetagenomicData** [https://bioconductor.org/packages/release/data/experiment/vignettes/curatedMetagenomicData/inst/doc/curatedMetagenomicData.html]. Les étudiants travailleront avec le langage **R** on base a des concepts et fonctions d'analyse ecologiques derivées du TP_Part1.
+
+À l’issue de ce TP, vous serais capable de :
+
+* Manipuler des jeux de données métagénomiques complexes
+* Comprendre la structure écologique d’une communauté microbienne
+* Calculer et interpréter la diversité **alpha** et **bêta**
+* Visualiser les communautés par des méthodes d’ordination
+* Tester des hypothèses écologiques simples
+
+# Packages utilisés
+
+```{r, echo=FALSE}
+install.packages("vegan")
+library(vegan)
+install.packages("pheatmap")
+library(pheatmap)
+install.packages("ggplot2")
+library(ggplot2)
+```
+
+# Chargée les données
+
+```{r}
+#adapter on fonction de la path aux données
+load("~/hmp_dataset.Rda")
+```
+
+# Partie 1 — Chargement et exploration des données
+
+## Objectif
+
+Découvrir la structure des données métagénomiques et leurs métadonnées associées sur un example de dataset shotgun reel qui correspond au projet "Human Microbiome Project" (HMP).
+
+Les données sont disponibles sur 4 dataframes differents:
+
+* hmp: Tableaux d'abondances relatifs (lignes=Especes microbiennes; colonnes=echantillons)
+* hmp.metadata: Tableaux de metadonnées (lignes=Echantillons; colonnes=Variables (Body sites, Body subsites comme variables les plus relevants pour les analyses))
+* hmp.taxo: Tableaux d'annotations taxonomiques des especes microbiennes (lignes=Nom complet des especes microbiennes; colonnes=Niveaux taxonomiques)
+* hmp.melted: Tableaux combinnées avec les trois dataframes precedents (1 ligne x Echantillon+Espece microbienne)
+
+## Metadonnées
+
+Les données sont extraites du package R **curatedMetagenomicData**, lequel integre 93 études de metagenomique humain shotgun qui sont traité par le methode MetaPhlan (version 3) pour le profilage taxonomique et HUMAnN (version 3) pour le profilage fonctionnel. L'etude HMP sur lequel on va travailler contient des echantillons metagenomiques humaines de 5 sites corporelles repartis dans 18 sub-sites (voir https://pubmed.ncbi.nlm.nih.gov/22699609/ pour plus d'informations).
+
+Ci-dessus un apperçu des metadonnées stockées sur le dataframe *hmp.metadata*
+
+````{r}
+head(hmp.metadata)
+````
+
+Quelques questions autour de ces etudes:
+
+* Combien d'echantillons comprend l'etude HMP??
+* Combien de sites/sub-sites corporelles sont representées??
+
+## Données
+
+Nous utiliserons des profils taxonomiques MetaPhlAn issus du Human Microbiome Project. Les données se trouve dans le dataframe *hmp*
+
+## Questions
+
+1. Combien d’échantillons et de taxa contient sont representées
+2. Quelle est la nature des abondances (comptes, proportions) ?
+
+# Partie 2 — Visualisation des profils taxonomiques
+
+## Objectif
+
+Avoir un premiere apperçu de la composition taxonomique a tres haut niveau (phylum,class) des echantillons on fonction des differents sites corporelles. 
+
+## Exercice 1
+
+Visualiser la distribution de prevalence des especes microbiennes au sein de l'ensemble de la cohorte. Qu'est que on peux conclure/deduire??.
+
+```{r, fig.align="center"}
+summary(rowSums(hmp>0))
+plot(density(rowSums(hmp>0)))
+```
+
+## Exercice 2
+
+Visualiser les profils taxonomiques à niveau du Phylum sur la forme de barplot empilé qui represent l'abondance cummulée des differents especes au sein des differents echantillons (x=echantillons, y=abondances) avec ggplot2. Utilisée l'option facets pour separer les echantillons qui appartient aux differents sites corporelles. Pour ça on va partir de le dataframe *hmp.melted*, qui contient l'ensemble des trois dataframes principals (*hmp*, *hmp.metadata*, *hmp.taxo*) combinées dans un seul tableau avec 1 ligne per echantillon et espece microbienne.
+
+Conseil pour ameliorer la visualisation des phyla=>definir un palette prope selon le nombre de phyla a plotter (vous pouvez vous servir de https://medialab.github.io/iwanthue/ pour creer la palette et l'option ggplot scale_fill_manual(values=palette) pour l'a visualiser sur le l'utiliser dans le barplot)
+
+```{r, fig.align="center", fig.height=10, fig.width=20}
+##visualiser l'estructure du dataframe
+head(hmp.melted)
+##Visu des profils taxonomiques par phyla
+ggplot(hmp.melted, aes(x=Sample, y=Abundance, fill=phylum)) + 
+  geom_bar(stat = "identity") + 
+  facet_grid(.~body_site, scales = "free_x", space = "free_x") + 
+  scale_fill_manual(values=c("#9d622e","#7d64ce","#9cb835","#bf4fb4","#57ba52","#d64881","#58c298","#cf473f","#49b9d3","#df802d","#6481c6","#c8a741","#c781bd","#5c8627","#a64e61","#3b8353","#e39074","#9cb069","#716f2a")) + 
+  theme(legend.key.size = unit(3,"mm"))
+```
+
+Que'est q'on peux deduire/quels sont les prinicipals differences entre ecosistemes??
+
+## Exercice 3
+
+Faire le meme analyse a niveau d class (1 niveau taxonomique plus bas). Que'est q'on peux deduire/quels sont les prinicipals differences entre ecosistemes??
+
+```{r, fig.align="center", fig.height=10, fig.width=20}
+ggplot(hmp.melted, aes(x=Sample, y=Abundance, fill=class)) + 
+  geom_bar(stat = "identity") + 
+  facet_grid(.~body_site, scales = "free_x", space = "free_x") + 
+  scale_fill_manual(values = c("#9f557d","#54c45a","#8f53c6","#87bb37","#d278e2","#4f9231","#c245a5","#b6b73c","#586fd8","#d8a139","#745fa5","#63be7d","#e6548f","#53c2a3","#d4424f","#3abbcc","#cb4829","#6195d2","#e37d3b","#308266","#b43567","#408349","#ca90d0","#577228","#e58686","#a3b169","#a8504a","#938829","#9c622b","#d3a36c","#746c2d")) + 
+  theme(legend.key.size = unit(3,"mm"))
+```
+
+
+# Partie 3 — Diversité alpha
+
+La diversité alpha décrit la **diversité au sein d’un échantillon**.
+
+* **Richesse** : nombre de taxa observés
+* **Shannon** : prend en compte richesse et équitabilité
+* **Simpson** : sensible aux taxa dominants
+
+Deux communautés peuvent avoir la même richesse mais des diversités très différentes.
+
+## Objectif
+
+Quantifier la diversité intra-échantillon et les comparer entre les differents sites corporelles.
+
+
+```{r}
+##use vegan functions to compute shanon/simpson
+alpha.shannon <- diversity(x = hmp, index = "shannon", MARGIN = 2)
+alpha.simpson <- diversity(x = hmp, index = "simpson", MARGIN = 2)
+alpha.obsp <- colSums(hmp>0)
+alpha <- data.frame(shannon=alpha.shannon,
+                    simpson=alpha.simpson,
+                    observedSp=alpha.obsp)
+##Add metavariables (body site et subsite)
+alpha <- merge(alpha, hmp.metadata, by=0)
+```
+
+## Questions 1
+
+Visualiser des boxplots avec la distribution de diversite Shannon et Simpson et la richesse on Especes observées par site corporel. Qu'est q'on peux conclure??
+
+```{r, fig.align="center"}
+## Shannon
+ggplot(alpha, aes(x = body_site, y = shannon)) +
+  geom_boxplot() +
+  theme_bw()
+ggplot(alpha, aes(x = body_subsite, y = shannon)) +
+  geom_boxplot(aes(fill=body_site)) +
+  theme_bw() + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+## Simpson
+ggplot(alpha, aes(x = body_site, y = simpson)) +
+  geom_boxplot() +
+  theme_bw()
+ggplot(alpha, aes(x = body_subsite, y = simpson)) +
+  geom_boxplot(aes(fill=body_site)) +
+  theme_bw() + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+##Observed species
+ggplot(alpha, aes(x = body_site, y = observedSp)) +
+  geom_boxplot() +
+  theme_bw()
+ggplot(alpha, aes(x = body_subsite, y = observedSp)) +
+  geom_boxplot(aes(fill=body_site)) +
+  theme_bw() + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+Dans le tableau de metadonnées il-y a le nombre de lectures par echantillons. Les comparer de la meme façon entre sites/subsites. Est-ce que il-y a des variations entre les sites?? Comment ça peut impacte les estimations de diversite??
+
+```{r, fig.align="center"}
+ggplot(alpha, aes(x = body_site, y = number_reads)) +
+  geom_boxplot() +
+  theme_bw()
+ggplot(alpha, aes(x = body_subsite, y = number_reads)) +
+  geom_boxplot(aes(fill=body_site)) +
+  theme_bw() + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+Comparer la correlation etre index de diversité et profondeur de sequençage. Qu'est q'on peux conclure??
+
+```{r, fig.align="center", fig.height=4, fig.width=12}
+cor.test(alpha$shannon, alpha$number_reads, method = "spearman")
+cor.test(alpha$simpson, alpha$number_reads, method = "spearman")
+cor.test(alpha$observedSp, alpha$number_reads, method = "spearman")
+par(mfrow=c(1,3))
+plot(alpha$shannon, alpha$number_reads)
+plot(alpha$simpson, alpha$number_reads)
+plot(alpha$observedSp, alpha$number_reads)
+```
+
+## Questions 2
+
+1. Quelle différence conceptuelle existe-t-il entre richesse et diversité ?
+2. Quels sites corporels présentent la plus forte diversité ?
+3. Comment interpréter une diversité élevée mais une richesse faible ?
+4. Comment on peux prendre en compte les differences de profondeur d sequençage sur les calculs de diversité??
+
+Pour repondre la 4eme question:
+
+* Nous pouvons regresser les index de diversité vs. le nombre de lectures et extraire les residuals de cette regression (variabilité sur les index de diversité pas explique par la profondeur de sequençage)
+
+```{r, fig.align="center"}
+lm.shannon <- lm(alpha$shannon~alpha$number_reads)
+alpha$shannon.res <- residuals(lm(alpha$shannon~alpha$number_reads))
+alpha$simpson.res <- residuals(lm(alpha$simpson~alpha$number_reads))
+alpha$observedSp.res <- residuals(lm(alpha$observedSp~alpha$number_reads))
+
+ggplot(alpha, aes(x = body_subsite, y = shannon.res)) +
+  geom_boxplot(aes(fill=body_site)) +
+  theme_bw() + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+ggplot(alpha, aes(x = body_subsite, y = simpson.res)) +
+  geom_boxplot(aes(fill=body_site)) +
+  theme_bw() + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+ggplot(alpha, aes(x = body_subsite, y = observedSp.res)) +
+  geom_boxplot(aes(fill=body_site)) +
+  theme_bw() + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+* On peux aussi faire un rarefraction ou downsizing pour mettre toutes les echantillons à un meme profondeur de sequençage. Pour ça (on anglais):
+
+    * re-build the curatedMetagenomicData extraction with counts=TRUE (will multiply relative abundances by number of reads in each sample, so we will have counts at the end)
+    * rarefy to even depth across all samples (for this, get the summary of the colSums to fix common threshold and not lose any sample)
+    * re-do the diversity analyses
+
+Is there a difference in diversity profiles across sites/subsites before/after rarefraction step??
+
+```{r, fig.align="center"}
+##Get the data for counts
+hmp.melted$Abundance.counts <- as.integer(round(hmp.melted$Abundance*hmp.melted$number_reads))
+hmp.counts <- reshape2::dcast(data = hmp.melted, formula = Sample~OTU, value.var="Abundance.counts")
+rownames(hmp.counts) <- hmp.counts$Sample ; hmp.counts <- hmp.counts[,-1]
+
+##get the summary of colsums in the count abundance table
+summary(rowSums(hmp.counts))
+plot(density(rowSums(hmp.counts)))
+
+##rarefy even depth (n=28000 reads x sample will keep all samples)
+hmp.counts.rar <- rrarefy(x = hmp.counts, sample = 28000)
+# ps.counts.rar <- rarefy_even_depth(ps.counts, rngseed = 711, sample.size = 28000, trimOTUs = TRUE)
+summary(rowSums(hmp.counts.rar)) ##all samples=28000 total counts
+
+##relative abundance transformation
+hmp.counts.rar.rel <- as.data.frame(apply(hmp.counts.rar, 1, function(x){x/sum(x)}))
+
+##use vegan functions to compute shanon/simpson
+alpha.shannon.rar <- diversity(x = hmp.counts.rar.rel, index = "shannon", MARGIN = 2)
+alpha.simpson.rar <- diversity(x = hmp.counts.rar.rel, index = "simpson", MARGIN = 2)
+alpha.obsp.rar <- colSums(hmp.counts.rar.rel>0)
+alpha.rar <- data.frame(shannon=alpha.shannon.rar,
+                        simpson=alpha.simpson.rar,
+                        observedSp=alpha.obsp.rar)
+##Add metavariables (body site et subsite)
+alpha.rar <- merge(alpha.rar, hmp.metadata, by=0)
+
+## Shannon
+ggplot(alpha.rar, aes(x = body_site, y = shannon)) +
+  geom_boxplot() +
+  theme_bw()
+ggplot(alpha.rar, aes(x = body_subsite, y = shannon)) +
+  geom_boxplot(aes(fill=body_site)) +
+  theme_bw() + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+## Simpson
+ggplot(alpha.rar, aes(x = body_site, y = simpson)) +
+  geom_boxplot() +
+  theme_bw()
+ggplot(alpha.rar, aes(x = body_subsite, y = simpson)) +
+  geom_boxplot(aes(fill=body_site)) +
+  theme_bw() + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+## Observed species
+ggplot(alpha.rar, aes(x = body_site, y = observedSp)) +
+  geom_boxplot() +
+  theme_bw()
+ggplot(alpha.rar, aes(x = body_subsite, y = observedSp)) +
+  geom_boxplot(aes(fill=body_site)) +
+  theme_bw() + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+## Question 3
+
+Comparer les valeurs de diversité avec et sans la rarefraction. Qu'est q'on peux conclure??
+
+```{r, fig.align="center"}
+alpha$source <- "no-rar"
+alpha.rar$source <- "rar"
+identical(rownames(alpha), rownames(alpha.rar))
+par(mfrow=c(2,3))
+plot(alpha$shannon, alpha.rar$shannon)
+plot(alpha$simpson, alpha.rar$simpson)
+plot(alpha$observedSp, alpha.rar$observedSp)
+plot(alpha$shannon/alpha.rar$shannon)
+plot(alpha$simpson/alpha.rar$simpson)
+plot(alpha$observedSp/alpha.rar$observedSp)
+```
+
+# Partie 4 — Diversité bêta
+
+La diversité bêta mesure la **différence de composition entre communautés**. Elle repose sur des **distances écologiques**, et non sur des distances euclidiennes classiques. Bray–Curtis est particulièrement adaptée aux données d’abondance relative, tandis que la distance de Jaccard est adapté pour des données de presence/absence.
+
+## Objectif
+
+Comparer la composition microbienne entre échantillons et sites corporels on base a l'abondance relatif et la presence/absence des especes microbiennes à l'aide des visualisation sur la forme de heatmap sur la matrice de distances entre échantillons.
+
+## Questions
+
+1. Que mesure la distance de Bray–Curtis ?
+2. En quoi diffère-t-elle d’une distance euclidienne ?
+3. Que mesure la distance Jaccard
+
+```{r, fig.align="center", fig.height=8, fig.width=10}
+library(pheatmap)
+dist.bc <- vegdist(t(hmp), method = "bray")
+#add sample body site and subsite to the pheatmap colouring
+pheatmap(as.matrix(dist.bc), 
+         annotation_row = hmp.metadata[,"body_site",drop=FALSE],
+         annotation_col = hmp.metadata[,"body_subsite",drop=FALSE],
+         main = "Bray-Curtis")
+
+dist.jaccard <- vegdist(t(hmp), method = "jaccard", binary=TRUE)
+pheatmap(as.matrix(dist.jaccard), 
+         annotation_row = hmp.metadata[,"body_site",drop=FALSE],
+         annotation_col = hmp.metadata[,"body_subsite",drop=FALSE],
+         main = "Jaccard")
+```
+
+
+# Partie 5 — Réduction de dimensions (ordination)
+
+Les méthodes d’ordination permettent de **projeter une matrice de distances complexe** dans un espace de faible dimension afin de visualiser des gradients écologiques.
+
+* **PCoA** : basée sur une matrice de distances
+* **PCA** : basée sur une matrice de variance-covariance
+* **Non-metric Multidimensional Scaling (NMDS)**: basée sur un matrice de distances mais utilise des ranks entre les distances (p.ex. echantillon A plus proche d'echantillon B que d C) on lieu de les distances lui meme (comme la PCoA)
+
+### Objectif
+
+Visualiser la structuration écologique des communautés. Pour ça on va s'en servir des methodes Principal Coordinate Analyses (PCoA) et Non-metric Multidimensional Scaling (NMDS)
+
+## Questions
+
+1. Observe-t-on une structuration par site corporel ?
+2. Que représentent les axes de la PCoA ?
+3. Quelle est la différence entre PCA et PCoA ?
+
+```{r, fig.align="center", fig.height=7, fig.width=10}
+##PCoA
+ord.pcoa <- cmdscale(dist.bc, eig = TRUE)
+ord.pcoa.df <- data.frame(ord.pcoa$points)
+ord.pcoa.df <- merge(ord.pcoa.df, hmp.metadata, by=0, all.x=TRUE)
+##plot
+ggplot(ord.pcoa.df, aes(x=X1, y=X2)) + 
+  geom_point(aes(colour=body_subsite, shape=body_site)) + 
+  xlab(paste("PCo1 (", signif(100*(ord.pcoa$eig[1]/sum(ord.pcoa$eig)),2),"%)", sep = "")) + 
+  ylab(paste("PCo2 (", signif(100*(ord.pcoa$eig[2]/sum(ord.pcoa$eig)),2),"%)", sep = ""))
+
+##NMDS
+ord.nmds <- metaMDS(dist.bc,
+                    distance = "bray",
+                    k = 3,
+                    maxit = 999, 
+                    trymax = 20,
+                    wascores = TRUE)
+ord.nmds.df <- data.frame(ord.nmds$points)
+ord.nmds.df <- merge(ord.nmds.df, hmp.metadata, by=0, all.x=TRUE)
+ggplot(ord.nmds.df, aes(x=MDS1, y=MDS2)) + 
+  geom_point(aes(colour=body_subsite, shape=body_site))
+```
+
+Repeat the ordination with abundances collapsed at genus level. Quels sont les principals differences avec l'ordination basée on les especes??
+
+```{r, fig.align="center", fig.height=7, fig.width=10}
+hmp.melted.genus <- plyr::ddply(hmp.melted, c("phylum","class","order","family","genus","Sample"), summarise, Abundance=sum(Abundance))
+hmp.melted.genus$OTU <- apply(hmp.melted.genus[,1:5], 1, function(x){paste(x, collapse = "__")})
+hmp.melted.genus <- reshape2::dcast(data = hmp.melted.genus, formula = Sample~OTU, value.var="Abundance")
+rownames(hmp.melted.genus) <- hmp.melted.genus$Sample ; hmp.melted.genus <- hmp.melted.genus[,-1]
+
+##distance calculations
+dist.bc.genus <- vegdist(hmp.melted.genus, method = "bray")
+
+##PCoA
+ord.pcoa.genus <- cmdscale(dist.bc.genus, eig = TRUE)
+ord.pcoa.genus.df <- data.frame(ord.pcoa.genus$points)
+ord.pcoa.genus.df <- merge(ord.pcoa.genus.df, hmp.metadata, by=0, all.x=TRUE)
+##plot
+ggplot(ord.pcoa.genus.df, aes(x=X1, y=X2)) + 
+  geom_point(aes(colour=body_subsite, shape=body_site)) + 
+  xlab(paste("PCo1 (", signif(100*(ord.pcoa.genus$eig[1]/sum(ord.pcoa.genus$eig)),2),"%)", sep = "")) + 
+  ylab(paste("PCo2 (", signif(100*(ord.pcoa.genus$eig[2]/sum(ord.pcoa.genus$eig)),2),"%)", sep = ""))
+
+
+##NMDS
+ord.nmds.genus <- metaMDS(dist.bc.genus,
+                          distance = "bray",
+                          k = 3,
+                          maxit = 999, 
+                          trymax = 20,
+                          wascores = TRUE)
+ord.nmds.genus.df <- data.frame(ord.nmds.genus$points)
+ord.nmds.genus.df <- merge(ord.nmds.genus.df, hmp.metadata, by=0, all.x=TRUE)
+ggplot(ord.nmds.genus.df, aes(x=MDS1, y=MDS2)) + 
+  geom_point(aes(colour=body_subsite, shape=body_site))
+```
+
+# Partie 6 — Test d’hypothèses écologiques (PERMANOVA)
+
+## Objectif
+
+Tester statistiquement l’effet d’une variable environnementale sur la composition du communite microbienne defini par les distances Bray-Curtis et les distances de Jaccard.
+
+### Questions
+
+1. Quelle est l’hypothèse testée par la PERMANOVA ?
+2. Comment interpréter le R² et la p-value ?
+
+```{r}
+meta <- hmp.metadata[labels(dist.bc),]
+adonis2(
+  dist.bc ~ body_site,
+  data = meta,
+  permutations = 999
+)
+
+adonis2(
+  dist.jaccard ~ body_site,
+  data = meta,
+  permutations = 999
+)
+```
+
+# Correction – éléments attendus (enseignant)
+
+## Partie 1
+
+* L’objet phyloseq contient plusieurs centaines d’échantillons et plusieurs milliers de taxa.
+* Les métadonnées incluent notamment le site corporel, l’âge, le sexe et l’étude d’origine.
+* Les abondances MetaPhlAn sont déjà normalisées (profils relatifs).
+
+## Partie 4–5
+
+* Les échantillons se regroupent fortement par site corporel.
+* Les premiers axes de la PCoA capturent les gradients écologiques dominants.
+* La PCoA permet d’utiliser des distances non euclidiennes, contrairement à la PCA.
+
+### Partie 6
+
+* La PERMANOVA teste si les **centroïdes des groupes** sont significativement différents.
+* Le R² représente la proportion de variance expliquée.
+* Le test est sensible aux différences de dispersion intra-groupe.
+
+> **Message clé à retenir**
+> Les communautés microbiennes humaines sont fortement structurées par leur environnement, et les outils de l’écologie permettent de quantifier et tester cette structuration.
+
