@@ -42,11 +42,12 @@ suivre les instructions du TP
 git clone https://github.com/eugenibc/TP_metagenomics.git
 cd TP_metagenomics
 ```
+- Telecharger le dataset hmp_dataset.Rda depuis le lien https://filesender.renater.fr/?s=download&token=c75ca65e-d9be-4c0a-a601-343d575b7c97
 
 Dans RStudio :
 
 * ouvrir le fichier TP_microbiome_M2_Part1.Rmd: Analyses basiques sur dataset de reference du package Vegan (no metagenomique)
-* ouvrir le fichier TP_microbiome_M2_Part2_noDocker.Rmd: Analyses sur dataset metagenomique shotgun de la cohort HMP à partir des abondances MetaPhlan disponibles sur le package R curatedMetagenomicData sauvegardées dans un objet R (hmp_dataset.Rda sur ). Sur cette version vous pouvez travailler avec les memes fonctions que vous auriez vu sur le TP_Part1.
+* ouvrir le fichier TP_microbiome_M2_Part2_noDocker.Rmd: Analyses sur dataset metagenomique shotgun de la cohort HMP à partir des abondances MetaPhlan disponibles sur le package R curatedMetagenomicData sauvegardées dans un objet R (hmp_dataset.Rda). Sur cette version vous pouvez travailler avec les memes fonctions que vous auriez vu sur le TP_Part1.
 
 suivre les instructions du TP
 
