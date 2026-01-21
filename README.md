@@ -24,7 +24,7 @@ Login : rstudio Mot de passe : tp
 
 Dans RStudio :
 
-* ouvrir le fichier TP_microbiome_M2_Part1.Rmd:  Analyses basiques sur dataset de reference du package Vegan (no metagenomique)
+* ouvrir le fichier TP_microbiome_M2_Part1.Rmd: Analyses basiques sur dataset de reference du package Vegan (no metagenomique)
 * ouvrir le fichier TP_microbiome_M2_Part2.Rmd: Analyses sur dataset metagenomique shotgun de la cohort HMP à partir des abondances MetaPhlan disponibles sur le package R curatedMetagenomicData. Cette version du TP utilise des fonctions du package R curatedMetagenomicData pour explorer et recuperer les dataset metagenomiques de differents etudes (HMP pour le TP) ainsi que des fonctions du package R phyloseq pour faire les analyses ecologiques equivalents a ces que vous auriez vu dans le TP_Part1
 
 suivre les instructions du TP
@@ -45,7 +45,7 @@ cd TP_metagenomics
 
 Dans RStudio :
 
-* ouvrir le fichier TP_microbiome_M2_Part1.Rmd:  Analyses basiques sur dataset de reference du package Vegan (no metagenomique)
+* ouvrir le fichier TP_microbiome_M2_Part1.Rmd: Analyses basiques sur dataset de reference du package Vegan (no metagenomique)
 * ouvrir le fichier TP_microbiome_M2_Part2_noDocker.Rmd: Analyses sur dataset metagenomique shotgun de la cohort HMP à partir des abondances MetaPhlan disponibles sur le package R curatedMetagenomicData sauvegardées dans un objet R (hmp_dataset.Rda sur ). Sur cette version vous pouvez travailler avec les memes fonctions que vous auriez vu sur le TP_Part1.
 
 suivre les instructions du TP
@@ -80,7 +80,8 @@ password : tp
 
 Dans RStudio :
 
-* ouvrir le fichier TP_microbiome_M2_Part1.Rmd:  Analyses basiques sur dataset de reference du package Vegan (no metagenomique)
-* ouvrir le fichier TP_microbiome_M2_Part2.Rmd: Analyses sur dataset metagenomique shotgun de la cohort HMP à partir des abondances MetaPhlan disponibles sur le package R curatedMetagenomicData
+* TP_microbiome_M2_Part1.Rmd: Analyses basiques sur dataset de reference du package Vegan (no metagenomique)
+* TP_microbiome_M2_Part2.Rmd: Analyses sur dataset metagenomique shotgun de la cohort HMP à partir des abondances MetaPhlan disponibles sur le package R curatedMetagenomicData. Cette version du TP utilise des fonctions du package R curatedMetagenomicData pour explorer et recuperer les dataset metagenomiques de differents etudes (HMP pour le TP) ainsi que des fonctions du package R phyloseq pour faire les analyses ecologiques equivalents a ces que vous auriez vu dans le TP_Part1
+* TP_microbiome_M2_Part2_noDocker.Rmd: Analyses sur dataset metagenomique shotgun de la cohort HMP à partir des abondances MetaPhlan disponibles sur le package R curatedMetagenomicData sauvegardées dans un objet R (hmp_dataset.Rda sur ). Sur cette version vous pouvez travailler avec les memes fonctions que vous auriez vu sur le TP_Part1.
 
 suivre les instructions du TP
